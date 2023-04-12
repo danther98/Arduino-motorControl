@@ -4,6 +4,7 @@
 #include <FlexyStepper.h>
 #include "Controller_Constants.h"
 #include "Sensor_Debounce.h"
+//#include <CAN.h>
 
 //States
 #define ZERO 0
@@ -61,18 +62,18 @@ void commStart(){
 
   SERIAL_PORT_MONITOR.begin(115200);
   while (CAN_OK != CAN.begin(CAN_500KBPS)) {             // init can bus : baudrate = 500k
-        SERIAL_PORT_MONITOR.println(F("CAN init fail, retry..."));
+        SERIAL_PORT_MONITOR.println(("CAN init fail, retry..."));
         delay(100);
     }
     SERIAL_PORT_MONITOR.println(F("CAN init ok!"));
-  while(!init_Filt(0b1<<board_ID,0,0b10100000 + (1 << board_ID) + 0x1fffff00){
+  while(!CAN.init_Filt(0b1<<board_ID,0,0b10100000 + (1 << board_ID) + 0x1fffff00)){
   //init_Filt(0 or 1 for mask: 0 to 5 for filter, 0 for standard frame: 1 for extended, content of mask or filter)
         if (SERIAL_ON) Serial.println(F("filter failed!"));
         //digitalWrite(ALL_GOOD_LED, LOW);
         delay(1000);
-    }else{
-      if(SERIAL_ON) Serial.println(F("Filter started"));
     }
+      if(SERIAL_ON) Serial.println(F("Filter started"));
+    
 }
 
 
@@ -161,8 +162,8 @@ bool zeroRotation(){
     //rotation_stepper.setCurrentPositionAsHomeAndStop();
     rotation_stepper.setSpeedInRevolutionsPerSecond(HOME_SPEED_ROTATION);
     double distance = 3*DIRECTIONS[board_ID][ROTATION];
-    Serial.Print(F("Rotation is: ");
-    Serial.Print(F(distance));
+    Serial.print(F("Rotation is: "));
+    Serial.print((distance));
 
 
     rotation_stepper.moveToHomeInRevolutions(-1, 20, 50, ROTATION_SENSOR);//ROTATION ZERO HERE 
@@ -279,6 +280,56 @@ void setControl(){
 }
 
 
+void CANSender(){
+    FLOAT_BYTE_UNION translation_measured_f;
+    FLOAT_BYTE_UNION rotation_measured_f;
+    translation_measured_f.value = (float)(DIRECTIONS[board_ID][TRANSLATION]*translation_stepper.getCurrentPositionInMillimeters());
+    rotation_measured_f.value = (float)(DIRECTIONS[board_ID][ROTATION]*rotation_stepper.getCurrentPositionInRevolutions()*DEGREES_PER_REVOLUTION);
+    if (SERIAL_ON && SERIAL_MESSAGES) Serial.print("Sent: (packet: 0b");
+    if (state == RUNNING) {
+      unsigned char dat[8]={0,0,0,0,0,0,0,0};
+      /* for (int i = sizeof(float)-1; i >= 0; i--){
+            CAN.write(translation_measured_f.bytes[i]);
+       }
+ */
+      //replace packet with array? create own packet functions?
+       // CAN.beginPacket(0b10010000 + (1 << board_ID));// start sequence of sending packet, need to see if begin packet will work with new lib. 
+        for (int i = sizeof(float)-1; i >= 0; i--){
+            dat[i]=translation_measured_f.bytes[i]; // these are to write to the packet 
+        }
+        for (int i = sizeof(float)-1; i >= 0; i--){
+            dat[i+4]=rotation_measured_f.bytes[i];// these are to write to the packet 
+        }
+        CAN.sendMsgBuf(0b10010000 + (1 << board_ID),0,8,dat);
+
+       // CAN.endPacket(); //ends sequence of sending packet, so replace with CAN.sendMsgBuf()?
+        if (SERIAL_ON && SERIAL_MESSAGES) Serial.print(0b10010000 + (1 << board_ID), BIN);
+
+        
+   
+    else if (state == SHORT_CAN_WAIT || state == EMERGENCY_STOP || state == STOP_SWITCH || state == ZERO) {
+       // CAN.beginPacket((1 << board_ID) + 0b10000000);
+        for (int i = sizeof(float)-1; i >= 0; i--){
+            dat[i]=translation_measured_f.bytes[i]; // these are to write to the packet 
+        }
+        for (int i = sizeof(float)-1; i >= 0; i--){
+            dat[i+4]=rotation_measured_f.bytes[i];// these are to write to the packet 
+        }
+        CAN.sendMsgBuf((1 << board_ID) + 0b10000000,0,8,dat);
+      
+        if (SERIAL_ON && SERIAL_MESSAGES) Serial.print((1 << board_ID) + 0b10000000, BIN);
+    } else {
+        if (SERIAL_ON && SERIAL_MESSAGES) Serial.println("NON PRINT STATE");
+    }
+    if (SERIAL_ON && SERIAL_MESSAGES) {
+        Serial.print(" ROTATION: ");
+        Serial.print(rotation_measured_f.value);
+        Serial.print(" Translation: ");
+        Serial.println(translation_measured_f.value);
+    }
+}
+}
+//int received_zero = false; //The goal rod will receive phantom zero commands and needs to be stopped
 
 
 
