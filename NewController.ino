@@ -221,10 +221,64 @@ bool zeroRotation(){
     int timer_bounce = 0;
     int count = 0;
     //rotation_stepper.setCurrentPositionAsHomeAndStop();
-    rotation_stepper.moveToHomeInRevolutions(-1, 20, 50, ROTATION_SENSOR);//ROTATION ZERO HERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+    //rotation_stepper.moveToHomeInRevolutions(-1, 20, 50, ROTATION_SENSOR);//ROTATION ZERO HERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     rotation_stepper.setSpeedInRevolutionsPerSecond(HOME_SPEED_ROTATION);
     double distance = 3*DIRECTIONS[board_ID][ROTATION];
-    rotation_stepper.setTargetPositionInRevolutions(distance);
+//NEW CODE START
+ while(digitalRead(ROTATION_DRIVER_ZERO)==HIGH){
+        Serial.println("FIRST LOOP high");//
+      
+        /* if (millis() - timer_bounce > 1) {
+            timer_bounce = millis();
+            translational_zero.sensorMonitor();
+        } */
+        rotation_stepper.moveRelativeInSteps(500); //MOVES towards stepper
+      
+        //Serial.println(translation_stepper.getCurrentPositionInMillimeters());        
+    
+    }
+    rotation_stepper.setCurrentPositionInMillimeters(0.00);
+
+    while(digitalRead(ROTATION_DRIVER_ZERO)==LOW){//first click of switch, should stop then reverse
+      //   Serial.println("LOW");     
+       
+        rotation_stepper.setTargetPositionToStop();
+        rotation_stepper.processMovement();
+         delay(1000);
+         Serial.println("I am now rotating away from motor");  
+         
+         
+
+           rotation_stepper.moveRelativeInSteps(500); //moves in 5 mm steps away from motor 
+    }
+    
+    // while(digitalRead(TRANSLATION_DRIVER_ZERO)==HIGH){//switch is now active again, should stop and move towards motor 
+      //  translation_stepper.moveRelativeInMillimeters(-1); //MOVES 
+        //Serial.println("I am now moving back towards switch to finish zero");
+    //}
+    
+    //translation_stepper.setCurrentPositionInMillimeters(0.00);
+    
+    //delay(1000);
+//Serial.println("MOVE TO HOME FINISHED ");
+    return true;
+
+
+
+
+
+
+
+//NEW CODE END
+
+
+
+
+
+
+
+    
+   /*  rotation_stepper.setTargetPositionInRevolutions(distance);
     while(!rotation_stepper.processMovement() && rotational_zero.sensorActive()){ //if sensor is pressed, rotate until un pressed
         if (millis() - timer_bounce > 1) {
             timer_bounce = millis();
@@ -268,7 +322,7 @@ bool zeroRotation(){
        // rotation_stepper.emergencyStop();
         Serial.print(F(" Failed due to rotational_zero.sensorActive() being false | 0"));
         return false;
-    }
+    } */
     
 }
 
@@ -276,40 +330,48 @@ bool zeroTranslation(){
     for (int i = 0; i<SENSOR_DEBOUNCE*2; i++) translational_zero.sensorMonitor();
     int timer_serial = millis();
     int timer_bounce = millis();
-    //translation_stepper.setCurrentPositionAsHomeAndStop();
-    
-    
+    bool flag = false;
     translation_stepper.setSpeedInMillimetersPerSecond(HOME_SPEED_TRANSLATION);
     double distance = DIRECTIONS[board_ID][TRANSLATION]*-1*MAX_TRANSLATIONS[board_ID];
     Serial.print(F(" The Distance is: "));
     Serial.println(distance);
     
-    
     while(digitalRead(TRANSLATION_DRIVER_ZERO)==HIGH){
+        Serial.println("FIRST LOOP high");//
+      
         /* if (millis() - timer_bounce > 1) {
             timer_bounce = millis();
             translational_zero.sensorMonitor();
         } */
-        translation_stepper.moveRelativeInMillimeters(-5); //MOVES 
+        translation_stepper.moveRelativeInMillimeters(-1); //MOVES towards stepper
+      
         //Serial.println(translation_stepper.getCurrentPositionInMillimeters());        
+    
     }
     translation_stepper.setCurrentPositionInMillimeters(0.00);
- //   Serial.println(translation_stepper.getCurrentPositionInMillimeters());
-   
-    while(digitalRead(TRANSLATION_DRIVER_ZERO)==LOW){
-         Serial.println("LOW");     
-          
-           translation_stepper.moveRelativeInMillimeters(-25);
-    }
-    
-    
-     while(digitalRead(TRANSLATION_DRIVER_ZERO)==HIGH){
-        translation_stepper.moveRelativeInMillimeters(1); //MOVES       
-    }
-    translation_stepper.setCurrentPositionInMillimeters(0.00);
-    
-    delay(3000);
 
+    while(digitalRead(TRANSLATION_DRIVER_ZERO)==LOW){//first click of switch, should stop then reverse
+         Serial.println("LOW");     
+       
+         translation_stepper.setTargetPositionToStop();
+         translation_stepper.processMovement();
+         delay(1000);
+         Serial.println("I am now moving away from motor and switch in 5mm steps");  
+         
+         
+
+           translation_stepper.moveRelativeInMillimeters(5); //moves in 5 mm steps away from motor 
+    }
+    
+     while(digitalRead(TRANSLATION_DRIVER_ZERO)==HIGH){//switch is now active again, should stop and move towards motor 
+        translation_stepper.moveRelativeInMillimeters(-1); //MOVES 
+        Serial.println("I am now moving back towards switch to finish zero");
+    }
+    
+    translation_stepper.setCurrentPositionInMillimeters(0.00);
+    
+    delay(1000);
+Serial.println("MOVE TO HOME FINISHED ");
     return true;
       //translation_stepper.moveToHomeInMillimeters(-1, HOME_SPEED_TRANSLATION, distance, TRANSLATION_SENSOR);
       //translation_stepper.processMovement();
@@ -321,7 +383,7 @@ bool zeroTranslation(){
     
    // translation_stepper.setCurrentPositionInMillimeters(0.00);
    
-Serial.println("MOVETOHOME FINISHED ");
+
    // translation_stepper.setTargetPositionInMillimeters(distance);
     // while(!translation_stepper.processMovement() && !translational_zero.sensorActive()){
     //     if (millis() - timer_bounce > 1) {
