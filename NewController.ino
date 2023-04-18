@@ -5,7 +5,7 @@
 
 
 #include <SPI.h>
-#include "mcp2518fd_can.h"
+//#include "mcp2515fd_can.h"
 
 // Set SPI CS Pin according to your hardware
 // For Wio Terminal w/ MCP2518FD RPi Hat：
@@ -17,8 +17,7 @@
 // SPI_CS Pin: D9
 
 
-mcp2518fd CAN_SEND(SPI_CS_PIN_SEND);
-mcp2518fd CAN_RECEIVE(SPI_CS_PIN_RECEIVE);
+
 
 unsigned char len = 0;
 unsigned char buf[8];
@@ -84,17 +83,16 @@ typedef union {
 void setup() {
   analogWrite(HIGH, 0);
   if (SERIAL_ON) {
-    //Serial.begin(115200);
+    Serial.begin(115200);
   }
-  SERIAL_PORT_MONITOR.begin(115200);
-  while (!Serial)
-    ;  // wait for Serial
+ 
+CAN.setPins(SPI_CS_PIN);
 
-  if (CAN_SEND.begin(CAN_500K_1M) != 0 || CAN_RECEIVE.begin(CAN_500K_1M) != 0) {
-    SERIAL_PORT_MONITOR.println(F("CAN-BUS initiliased error!"));
-    while (1)
-      ;
-  }
+if(!CAN.begin(500E3)){
+  Serial.println("STARTING CAN FAILED");
+while(1);  
+}
+  
 
   SERIAL_PORT_MONITOR.println(F("CAN init ok!"));
   //Pin Initialization
@@ -370,7 +368,7 @@ bool zeroTranslation() {
             timer_bounce = millis();
             translational_zero.sensorMonitor();
         } */
-    translation_stepper.moveRelativeInMillimeters(-1);  //MOVES towards stepper
+    translation_stepper.moveRelativeInMillimeters(1);  //MOVES towards stepper
 
     //Serial.println(translation_stepper.getCurrentPositionInMillimeters());
   }
@@ -386,11 +384,11 @@ bool zeroTranslation() {
 
 
 
-    translation_stepper.moveRelativeInMillimeters(5);  //moves in 5 mm steps away from motor
+    translation_stepper.moveRelativeInMillimeters(-5);  //moves in 5 mm steps away from motor
   }
 
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {  //switch is now active again, should stop and move towards motor
-    translation_stepper.moveRelativeInMillimeters(-1);    //MOVES
+    translation_stepper.moveRelativeInMillimeters(1);    //MOVES
     Serial.println("I am now moving back towards switch to finish zero");
   }
 
@@ -471,7 +469,7 @@ void CANSender() {
   FLOAT_BYTE_UNION translation_measured_f;
   FLOAT_BYTE_UNION rotation_measured_f;
   translation_measured_f.value = (float)(DIRECTIONS[board_ID][TRANSLATION] * translation_stepper.getCurrentPositionInMillimeters());
-  // rotation_measured_f.value = (float)(DIRECTIONS[board_ID][ROTATION]*rotation_stepper.getCurrentPositionInRevolutions()*DEGREES_PER_REVOLUTION);
+  rotation_measured_f.value = (float)(DIRECTIONS[board_ID][ROTATION]*rotation_stepper.getCurrentPositionInRevolutions()*DEGREES_PER_REVOLUTION);
   if (SERIAL_ON && SERIAL_MESSAGES) Serial.print(F("Sent: (packet: 0b"));
   if (state == RUNNING) {
     CAN.beginPacket(0b10010000 + (1 << board_ID));
@@ -479,7 +477,7 @@ void CANSender() {
       CAN.write(translation_measured_f.bytes[i]);
     }
     for (int i = sizeof(float) - 1; i >= 0; i--) {
-      //CAN.write(rotation_measured_f.bytes[i]);
+      CAN.write(rotation_measured_f.bytes[i]);
     }
     CAN.endPacket();
     if (SERIAL_ON && SERIAL_MESSAGES) Serial.print(0b10010000 + (1 << board_ID), BIN);
@@ -575,6 +573,7 @@ void CANReceiver() {
 void evaluateState() {
   if (SERIAL_ON && SERIAL_STATES) {
     //last_state = state;
+delay(500);    
     Serial.print(F("State: "));
     Serial.println(state);
   }
