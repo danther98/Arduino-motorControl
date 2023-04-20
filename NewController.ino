@@ -81,14 +81,19 @@ typedef union {
 } FLOAT_BYTE_UNION;
 
 void setup() {
-  analogWrite(HIGH, 0);
+//delay(25000);
+
+
+
+  
+ // analogWrite(HIGH, 0);
   if (SERIAL_ON) {
     Serial.begin(115200);
   }
  
 CAN.setPins(SPI_CS_PIN);
 
-if(!CAN.begin(500E3)){
+if(!CAN.begin(1000E3)){
   Serial.println("STARTING CAN FAILED");
 while(1);  
 }
@@ -177,7 +182,7 @@ void loop() {
 
 bool start_CAN(int BAUD) {
   if (SERIAL_ON) Serial.println(F("Starting CAN"));
-  while (!CAN.begin(BAUD_RATE)) {
+  while (!CAN.begin(1000E3)) {
     if (SERIAL_ON) Serial.println(F("failed!"));
     digitalWrite(ALL_GOOD_LED, LOW);
     delay(1000);
@@ -282,12 +287,12 @@ bool zeroRotation() {
 
     delay(500);
 
-  if (rotational_zero.sensorActive()) {
+ // if (rotational_zero.sensorActive()) {
     return true;
-  } else {
-    Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
-    return false;
-  }
+// } else {
+   // Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
+   // return false;
+  //}
     
 
 
@@ -357,9 +362,9 @@ bool zeroTranslation() {
   int timer_serial = millis();
   int timer_bounce = millis();
   translation_stepper.setSpeedInMillimetersPerSecond(HOME_SPEED_TRANSLATION);
-  double distance = DIRECTIONS[board_ID][TRANSLATION] * -1 * MAX_TRANSLATIONS[board_ID];
-  Serial.print(F(" The Distance is: "));
-  Serial.println(distance);
+ // double distance = DIRECTIONS[board_ID][TRANSLATION] * -1 * MAX_TRANSLATIONS[board_ID];
+ // Serial.print(F(" The Distance is: "));
+ // Serial.println(distance);
 
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {
     //Serial.println("FIRST LOOP high");//
@@ -368,7 +373,7 @@ bool zeroTranslation() {
             timer_bounce = millis();
             translational_zero.sensorMonitor();
         } */
-    translation_stepper.moveRelativeInMillimeters(1);  //MOVES towards stepper
+    translation_stepper.moveRelativeInMillimeters(-1);  //MOVES towards stepper
 
     //Serial.println(translation_stepper.getCurrentPositionInMillimeters());
   }
@@ -377,75 +382,36 @@ bool zeroTranslation() {
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == LOW) {  //first click of switch, should stop then reverse
     //Serial.println("LOW");
 
-    translation_stepper.setTargetPositionToStop();
-    translation_stepper.processMovement();
+   // translation_stepper.setTargetPositionToStop();
+   // translation_stepper.processMovement();
     delay(1000);
     Serial.println("I am now moving away from motor and switch in 5mm steps");
 
 
 
-    translation_stepper.moveRelativeInMillimeters(-5);  //moves in 5 mm steps away from motor
+    translation_stepper.moveRelativeInMillimeters(5);  //moves in 5 mm steps away from motor
   }
 
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {  //switch is now active again, should stop and move towards motor
-    translation_stepper.moveRelativeInMillimeters(1);    //MOVES
+    translation_stepper.moveRelativeInMillimeters(-1);    //MOVES
     Serial.println("I am now moving back towards switch to finish zero");
-  }
+//if(translation_stepper.getCurrentPositionInMillimeters()>=5){
+     //   translation_stepper.setTargetPositionInMillimeters(0);
+      //  translation_stepper.processMovement();
+          //  } 
+ }
 
-  translation_stepper.setCurrentPositionInMillimeters(0.00);
+  //translation_stepper.setCurrentPositionInMillimeters(0.00);
 
   delay(500);
 
-  if (translational_zero.sensorActive()) {
+  //if (translational_zero.sensorActive()) {
     return true;
-  } else {
-    Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
-    return false;
-  }
+  //} else {
+   // Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
+    //return false;
+ // }
 
-  //translation_stepper.moveToHomeInMillimeters(-1, HOME_SPEED_TRANSLATION, distance, TRANSLATION_SENSOR);
-  //translation_stepper.processMovement();
-  //translational_zero.sensorMonitor();
-  //Serial.println("I AM MOVING INSIDE LOOP");
-
-  //}
-  //Serial.println("I HAVE LEFT THE LOOP AND");
-
-  // translation_stepper.setCurrentPositionInMillimeters(0.00);
-
-
-  // translation_stepper.setTargetPositionInMillimeters(distance);
-  // while(!translation_stepper.processMovement() && !translational_zero.sensorActive()){
-  //     if (millis() - timer_bounce > 1) {
-  //         timer_bounce = millis();
-  //         translational_zero.sensorMonitor();
-  //     }
-
-  //     if (SERIAL_ON && (millis() - timer_serial > 1000)) {
-  //         timer_serial = millis();
-  //         Serial.print(".");
-  //     }
-
-  //     if (digitalRead(ENABLE) == LOW) {
-  //         //translation_stepper.emergencyStop(false);
-  //         Serial.print(F(" Failed due to ENABLE being low | 3"));
-  //         return false;
-  //     }
-
-  // }
-  // if (translational_zero.sensorActive()) {
-  //    // translation_stepper.setCurrentPositionAsHomeAndStop();
-  //    translation_stepper.moveToHomeInMillimeters(-1, HOME_SPEED_TRANSLATION, 1, TRANSLATION_DRIVER_ZERO);
-  //     translation_stepper.setTargetPositionInMillimeters(DIRECTIONS[board_ID][TRANSLATION]);                  //Single mm change... weird
-  //     while(!translation_stepper.processMovement());
-  //     //translation_stepper.setCurrentPositionAsHomeAndStop();
-  //     translation_stepper.moveToHomeInMillimeters(-1, HOME_SPEED_TRANSLATION, 1, TRANSLATION_DRIVER_ZERO);
-  //     return true;
-  // } else {
-  //    // translation_stepper.emergencyStop(false);
-  //     Serial.print(F("Failed due to translational_zero.sensorActive() being false | 0"));
-  //     return false;
-  // }
 }
 
 void setControl() {
@@ -459,8 +425,9 @@ void setControl() {
       }
       state = ZERO;
     } else {
-      translation_stepper.setTargetPositionInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * translation_desired);
-      rotation_stepper.setTargetPositionInRevolutions(DIRECTIONS[board_ID][ROTATION] * rotation_desired);
+Serial.println("SET CONTROL LOOOP");      
+     translation_stepper.setTargetPositionInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * translation_desired);
+     rotation_stepper.setTargetPositionInRevolutions(DIRECTIONS[board_ID][ROTATION] * rotation_desired);
     }
   }
 }
@@ -582,13 +549,10 @@ delay(500);
     Serial.println("CALLED AGAIN ZERO IS");
     // translation_stepper.emergencyStop(false);
     //rotation_stepper.emergencyStop(false);
-    //if (translation_stepper.isStartedAsService()) translation_stepper.stopService();
-    //if (rotation_stepper.isStartedAsService()) rotation_stepper.stopService();
     if (zero()) {
       translation_stepper.setSpeedInMillimetersPerSecond(MAX_SPEED_TRANSLATION);
       rotation_stepper.setSpeedInRevolutionsPerSecond(MAX_SPEED_ROTATION);
-      //translation_stepper.startAsService(STEPPER_CORE); //Disables Watchdog timers to prevent ESP from rebooting constantly
-      //rotation_stepper.startAsService(STEPPER_CORE);//Disables Watchdog timers to prevent ESP from rebooting constantly
+      
       receive_time = millis();
       state = SHORT_CAN_WAIT;
     }
