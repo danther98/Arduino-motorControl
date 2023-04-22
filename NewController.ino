@@ -62,7 +62,7 @@ void CANSender();
 void CANReceiver();
 void evaluateState();
 
-int board_ID = 0;
+int board_ID = 3;           //Change this for each board
 
 int state = ZERO;
 bool emergency_stop = false;
@@ -91,7 +91,7 @@ void setup() {
     Serial.begin(115200);
   }
  
-CAN.setPins(SPI_CS_PIN);
+CAN.setPins(SPI_CS_PIN); //set to pin 9 for CAN shields 
 
 if(!CAN.begin(1000E3)){
   Serial.println("STARTING CAN FAILED");
@@ -105,12 +105,10 @@ while(1);
   pinMode(ID_2, INPUT);
   pinMode(ENABLE, INPUT);
 
-  //CAN.setPins(RXR_CAN, TXD_CAN);
   pinMode(ALL_GOOD_LED, OUTPUT);
   translation_stepper.connectToPins(TRANSLATION_DRIVER_PULSE, TRANSLATION_DRIVER_DIR);
   rotation_stepper.connectToPins(ROTATION_DRIVER_PULSE, ROTATION_DRIVER_DIR);
 
-  board_ID = digitalRead(ID_2) * 2 + digitalRead(ID_1);
 
   if (SERIAL_ON) {
     Serial.print(F("Board ID: "));
@@ -119,11 +117,9 @@ while(1);
 
   translation_stepper.setStepsPerMillimeter(STEP_PULSE_TRANSLATION_CONVERSION[board_ID]);
   translation_stepper.setAccelerationInMillimetersPerSecondPerSecond(MAX_ACCELERATION_TRANSLATION);
-  //translation_stepper.setDecelerationInMillimetersPerSecondPerSecond(MAX_ACCELERATION_TRANSLATION);
 
   rotation_stepper.setStepsPerRevolution(STEP_PULSE_ROTATION_CONVERSION);
   rotation_stepper.setAccelerationInRevolutionsPerSecondPerSecond(MAX_ACCELERATION_ROTATION);
-  //rotation_stepper.setDecelerationInRevolutionsPerSecondPerSecond(MAX_ACCELERATION_ROTATION);
 
 
   delay(3000);
@@ -131,45 +127,10 @@ while(1);
   send_time = millis();
   evaluateState();
 }
-unsigned char stmp[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
 void loop() {
 
-  /* //copy
-  // send data:  id = 0x00, standrad frame, data len = 8, stmp: data buf
-    stmp[7] = stmp[7] + 1;
-    if (stmp[7] == 100) {
-        stmp[7] = 0;
-        stmp[6] = stmp[6] + 1;
-
-        if (stmp[6] == 100) {
-            stmp[6] = 0;
-            stmp[5] = stmp[5] + 1;
-        }
-    } */
-
-  //CAN_SEND.sendMsgBuf(0x00, 0, 8, stmp);
-  //delay(100);                       // send data per 100ms
-  //SERIAL_PORT_MONITOR.println(F("CAN BUS sendMsgBuf ok!"));
-
-  // ---------------------
-
-  //if (CAN_MSGAVAIL == CAN_RECEIVE.checkReceive()) {
-  // read data,  len: data length, buf: data buf
-  // SERIAL_PORT_MONITOR.println(F("checkReceive"));
-  // CAN_RECEIVE.readMsgBuf(&len, buf);
-  // print the data
-  //for (int i = 0; i < len; i++) {
-  //  SERIAL_PORT_MONITOR.print(buf[i]); SERIAL_PORT_MONITOR.print(" ");
-  //}
-  //SERIAL_PORT_MONITOR.println();
-
-  //SERIAL_PORT_MONITOR.println(F("---LOOP END---"));
-
-
-
-  //end copy
-
+  
 
   evaluateState();
   CANReceiver();
@@ -227,8 +188,6 @@ bool zeroRotation() {
   int timer_serial = 0;
   int timer_bounce = 0;
   int count = 0;
-  //rotation_stepper.setCurrentPositionAsHomeAndStop();
-  //rotation_stepper.moveToHomeInRevolutions(-1, 20, 50, ROTATION_SENSOR);//ROTATION ZERO HERE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
   rotation_stepper.setSpeedInRevolutionsPerSecond(5);
   rotation_stepper.setSpeedInStepsPerSecond(50);
   double distance = 3 * DIRECTIONS[board_ID][ROTATION];
@@ -259,40 +218,15 @@ bool zeroRotation() {
     rotation_stepper.setCurrentPositionInSteps(0.0);
 
   
-    /* rotation_stepper.setCurrentPositionInMillimeters(0.00);
-
-    while(digitalRead(ROTATION_DRIVER_ZERO)==LOW){//first click of switch, should stop then reverse
-      //   Serial.println("LOW");     
-       
-        rotation_stepper.setTargetPositionToStop();
-        rotation_stepper.processMovement();
-         delay(1000);
-         Serial.println("I am now rotating away from motor");  
-         
-         
-
-           rotation_stepper.moveRelativeInSteps(500); //moves in 5 mm steps away from motor 
-    } */
-
-    // while(digitalRead(TRANSLATION_DRIVER_ZERO)==HIGH){//switch is now active again, should stop and move towards motor
-    //  translation_stepper.moveRelativeInMillimeters(-1); //MOVES
-    //Serial.println("I am now moving back towards switch to finish zero");
-    //}
-
-    //translation_stepper.setCurrentPositionInMillimeters(0.00);
-
-    //delay(1000);
-    //Serial.println("MOVE TO HOME FINISHED ");
-
-
     delay(500);
-
- // if (rotational_zero.sensorActive()) {
+  Serial.print("Rotational Sensor Active Result is: ");
+  Serial.println(rotational_zero.sensorActive());
+  if (digitalRead(ROTATION_DRIVER_ZERO) == LOW) {
     return true;
-// } else {
-   // Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
-   // return false;
-  //}
+} else {
+   Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
+   return false;
+  }
     
 
 
@@ -303,58 +237,6 @@ bool zeroRotation() {
 
   //NEW CODE END
 
-
-
-
-
-
-
-
-  /*  rotation_stepper.setTargetPositionInRevolutions(distance);
-    while(!rotation_stepper.processMovement() && rotational_zero.sensorActive()){ //if sensor is pressed, rotate until un pressed
-        if (millis() - timer_bounce > 1) {
-            timer_bounce = millis();
-            rotational_zero.sensorMonitor();
-        }
-
-        if (SERIAL_ON && millis() - timer_serial > 1000) {
-            timer_serial = millis();
-            Serial.print(".");
-        }
-
-        if (digitalRead(ENABLE) == LOW) {
-            //rotation_stepper.emergencyStop();
-            Serial.print(F(" Failed due to ENABLE being low | 1"));
-            return false;
-        }
-    }
-
-    while(!rotation_stepper.processMovement() && !rotational_zero.sensorActive()){
-        if (millis() - timer_bounce > 1) {
-            timer_bounce = millis();
-            rotational_zero.sensorMonitor();
-        }
-
-        if (SERIAL_ON && millis() - timer_serial > 1000) {
-            timer_serial = millis();
-            Serial.print(".");
-        }
-
-        if (digitalRead(ENABLE) == LOW) {
-            //rotation_stepper.emergencyStop(false);
-            Serial.print(F(" Failed due to ENABLE being low | 2"));
-            return false;
-        }
-    }
-    if (rotational_zero.sensorActive()) {
-        //rotation_stepper.setCurrentPositionAsHomeAndStop();
-         rotation_stepper.moveToHomeInRevolutions(-1, HOME_SPEED_ROTATION, 1, ROTATION_DRIVER_ZERO);
-        return true;
-    } else {
-       // rotation_stepper.emergencyStop();
-        Serial.print(F(" Failed due to rotational_zero.sensorActive() being false | 0"));
-        return false;
-    } */
 }
 
 bool zeroTranslation() {
@@ -362,10 +244,7 @@ bool zeroTranslation() {
   int timer_serial = millis();
   int timer_bounce = millis();
   translation_stepper.setSpeedInMillimetersPerSecond(HOME_SPEED_TRANSLATION);
- // double distance = DIRECTIONS[board_ID][TRANSLATION] * -1 * MAX_TRANSLATIONS[board_ID];
- // Serial.print(F(" The Distance is: "));
- // Serial.println(distance);
-
+ 
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {
     //Serial.println("FIRST LOOP high");//
 
@@ -373,44 +252,50 @@ bool zeroTranslation() {
             timer_bounce = millis();
             translational_zero.sensorMonitor();
         } */
-    translation_stepper.moveRelativeInMillimeters(-1);  //MOVES towards stepper
-
+    translation_stepper.moveRelativeInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * -1);  //MOVES towards switch
+//translation_stepper.moveRelativeInMillimeters(1);
     //Serial.println(translation_stepper.getCurrentPositionInMillimeters());
   }
-  translation_stepper.setCurrentPositionInMillimeters(0.00);
+  //translation_stepper.setCurrentPositionInMillimeters(0.00);
 
   while (digitalRead(TRANSLATION_DRIVER_ZERO) == LOW) {  //first click of switch, should stop then reverse
     //Serial.println("LOW");
 
-   // translation_stepper.setTargetPositionToStop();
-   // translation_stepper.processMovement();
+    translation_stepper.setTargetPositionToStop();
+
+    translation_stepper.processMovement();
     delay(1000);
-    Serial.println("I am now moving away from motor and switch in 5mm steps");
+    Serial.println("I am now moving toward the motor and away from switch in 5mm steps");
 
 
 
-    translation_stepper.moveRelativeInMillimeters(5);  //moves in 5 mm steps away from motor
+    translation_stepper.moveRelativeInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * 5);  //moves in 5 mm steps away from motor
   }
 
-  while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {  //switch is now active again, should stop and move towards motor
-    translation_stepper.moveRelativeInMillimeters(-1);    //MOVES
+  while (digitalRead(TRANSLATION_DRIVER_ZERO) == HIGH) {
+      //switch is now active again, should stop and move towards switch
+    translation_stepper.moveRelativeInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * -1);    //MOVES
     Serial.println("I am now moving back towards switch to finish zero");
-//if(translation_stepper.getCurrentPositionInMillimeters()>=5){
-     //   translation_stepper.setTargetPositionInMillimeters(0);
-      //  translation_stepper.processMovement();
-          //  } 
+            Serial.println(translation_stepper.getCurrentPositionInMillimeters());
+
+/* if(translation_stepper.getCurrentPositionInMillimeters()>=2){
+      translation_stepper.moveRelativeInMillimeters(0.0);
+        translation_stepper.processMovement();
+            }  */
  }
 
-  //translation_stepper.setCurrentPositionInMillimeters(0.00);
+  translation_stepper.setCurrentPositionInMillimeters(0.00);
 
   delay(500);
+  Serial.print(F("Transaltional Sensor Active Result is: "));
+  Serial.println(translational_zero.sensorActive());
 
-  //if (translational_zero.sensorActive()) {
+  if (digitalRead(TRANSLATION_DRIVER_ZERO) == LOW || translational_zero.sensorActive()) {
     return true;
-  //} else {
-   // Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
-    //return false;
- // }
+  } else {
+   Serial.println(F("Failed due to translation_zero.sensorActive() being false | 0 "));
+    return false;
+ }
 
 }
 
@@ -428,6 +313,12 @@ void setControl() {
 Serial.println("SET CONTROL LOOOP");      
      translation_stepper.setTargetPositionInMillimeters(DIRECTIONS[board_ID][TRANSLATION] * translation_desired);
      rotation_stepper.setTargetPositionInRevolutions(DIRECTIONS[board_ID][ROTATION] * rotation_desired);
+     while((!translation_stepper.motionComplete())||(!rotation_stepper.motionComplete())){
+          translation_stepper.processMovement();
+          rotation_stepper.processMovement();
+
+     }
+         
     }
   }
 }
@@ -540,7 +431,7 @@ void CANReceiver() {
 void evaluateState() {
   if (SERIAL_ON && SERIAL_STATES) {
     //last_state = state;
-delay(500);    
+    delay(500);    
     Serial.print(F("State: "));
     Serial.println(state);
   }
@@ -552,7 +443,7 @@ delay(500);
     if (zero()) {
       translation_stepper.setSpeedInMillimetersPerSecond(MAX_SPEED_TRANSLATION);
       rotation_stepper.setSpeedInRevolutionsPerSecond(MAX_SPEED_ROTATION);
-      
+      zero();
       receive_time = millis();
       state = SHORT_CAN_WAIT;
     }
