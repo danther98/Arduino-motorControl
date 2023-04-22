@@ -2,11 +2,11 @@
 #define ID_2 22
 #define ROTATION_DRIVER_PULSE 16
 #define ROTATION_DRIVER_DIR 14
-#define ROTATION_DRIVER_ZERO 4
+#define ROTATION_DRIVER_ZERO 19
 #define TRANSLATION_DRIVER_PULSE 3
-#define TRANSLATION_DRIVER_DIR 2
+#define TRANSLATION_DRIVER_DIR 15
 #define TRANSLATION_DRIVER_ZERO 5
-#define ROTATION_SENSOR  4
+#define ROTATION_SENSOR  19
 #define TRANSLATION_SENSOR  5
 #define TXD_CAN 23
 #define RXR_CAN 13
@@ -27,7 +27,6 @@ const int    DIRECTIONS[4][2] = {{ -1,  1}, //3 rod
                               { -1,  1}, //5 rod
                               { 1, -1}, //2 rod
                               { -1,  1}};//Goal rod
-
 const double MAX_TRANSLATIONS[4] = {181.23, //3 rod
                                     115.265, //5 rod
                                     356,    //2 rod
@@ -36,10 +35,10 @@ const double MAX_TRANSLATIONS[4] = {181.23, //3 rod
 
 // When motor is pointing away from you, positive 1 is clockwise
 //Fall 2022
-const int    DIRECTIONS[4][2] = {{ -1,  1}, //3 rod
-                              { -1,  1}, //5 rod
-                              { 1, 1}, //2 rod
-                              { 1,  1}};//Goal rod
+const int    DIRECTIONS[4][2] = {{ 1,  1}, //3 rod
+                              { 1,  1}, //5 rod
+                              { -1, 1}, //2 rod
+                              { -1,  1}};//Goal rod
 
 const double MAX_TRANSLATIONS[4] = {181.23, //3 rod
                                     115.265, //5 rod
@@ -66,6 +65,6 @@ const double HOME_SPEED_ROTATION = 1;
 const int    COM_DELAY = 10; //in ms
 const int    MAX_COM_DELAY = COM_DELAY * 6000;
 
-const int    SENSOR_DEBOUNCE = 10;
+const int    SENSOR_DEBOUNCE = 5;
 
-const int    BAUD_RATE = 500E3; // orig 1000E3
+const int    BAUD_RATE = 1000E3; // orig 1000E3
